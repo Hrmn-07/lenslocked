@@ -1,16 +1,20 @@
 package controllers
 
 import (
-	"lenslocked/views"
+	"fmt"
 	"net/http"
 )
 
 type Users struct {
 	Templates struct {
-		New views.Template
+		New Template
 	}
 }
 
 func (u Users) New(w http.ResponseWriter, r *http.Request) {
 	u.Templates.New.Execute(w, nil)
+}
+
+func (u Users) Create(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprint(w, "temporary response")
 }
