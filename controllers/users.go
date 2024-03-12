@@ -16,5 +16,10 @@ func (u Users) New(w http.ResponseWriter, r *http.Request) {
 }
 
 func (u Users) Create(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "temporary response")
+	err := r.ParseForm()
+	if err != nil {
+		http.Error(w, "Unable to parse form submission", http.StatusBadRequest)
+	}
+	fmt.Fprintf(w, "<p>Email: %s</p>", r.FormValue("email"))
+	fmt.Fprintf(w, "<p>Password: %s</p>", r.FormValue("password"))
 }
