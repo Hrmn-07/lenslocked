@@ -6,5 +6,5 @@ docker compose ls       //to check for any running docker instance
 
 docker compose stop     //to stop running instances of docker
 
-docker compose exec -it db psql -U baloo -d lenslocked  //to execute the psql binary inside 
-docker so that we can write sql queries right inside the terminal. Remember that '-it' is two commands combined.
+docker exec -it lenslocked-db-1 /usr/bin/psql -U baloo -d lenslocked  //to execute the psql binary inside 
+// docker so that we can write sql queries right inside the terminal. Remember that '-it' is two commands combined.
