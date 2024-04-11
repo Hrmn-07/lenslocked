@@ -11,7 +11,6 @@ func main() {
 	switch os.Args[1] {
 	case "hash":
 		hash(os.Args[2])
-
 	case "compare":
 		compare(os.Args[2], os.Args[3])
 	default:
