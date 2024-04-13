@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"lenslocked/controllers"
+	"lenslocked/migrations"
 	"lenslocked/models"
 	"lenslocked/templates"
 	"lenslocked/views"
@@ -32,6 +33,12 @@ func main() {
 		panic(err)
 	}
 	defer db.Close()
+
+	// run our goose migrations
+	err = models.MigrateFS(db, migrations.FS, ".")
+	if err != nil {
+		panic(err)
+	}
 
 	// setup a model service
 	userService := models.UserService{

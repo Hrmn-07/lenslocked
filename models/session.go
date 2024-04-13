@@ -50,7 +50,7 @@ func (ss *SessionService) Create(userID int) (*Session, error) {
 	// meaning that user already has a session, we instead update the user’s existing session
 	// and set its token_hash to the new value.
 	row := ss.DB.QueryRow(`
-	INSERT INTO sessions (user.id, token_hash)
+	INSERT INTO sessions (user_id, token_hash)
 	VALUES ($1, $2) ON CONFLICT (user_id) DO
 	UPDATE
 	SET token_hash = $2
