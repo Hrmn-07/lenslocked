@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"fmt"
+	"lenslocked/context"
 	"lenslocked/models"
 	"net/http"
 )
@@ -12,6 +13,10 @@ type Users struct {
 		SignIn Template
 	}
 	UserService    *models.UserService
+	SessionService *models.SessionService
+}
+
+type UserMiddleware struct {
 	SessionService *models.SessionService
 }
 
@@ -74,19 +79,57 @@ func (u Users) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (u Users) CurrentUser(w http.ResponseWriter, r *http.Request) {
-	token, err := readCookie(r, CookieSession)
-	if err != nil {
-		fmt.Println(err)
-		http.Redirect(w, r, "/signin", http.StatusFound)
-		return
-	}
-	user, err := u.SessionService.User(token)
-	if err != nil {
-		fmt.Println(err)
-		http.Redirect(w, r, "/signin", http.StatusFound)
-		return
-	}
-	fmt.Fprintf(w, "current user: %s\n", user.Email)
+
+	user := context.User(r.Context())
+	fmt.Fprintf(w, "Current user: %s\n", user.Email)
+
+	// token, err := readCookie(r, CookieSession)
+	// if err != nil {
+	// 	fmt.Println(err)
+	// 	http.Redirect(w, r, "/signin", http.StatusFound)
+	// 	return
+	// }
+	// user, err := u.SessionService.User(token)
+	// if err != nil {
+	// 	fmt.Println(err)
+	// 	http.Redirect(w, r, "/signin", http.StatusFound)
+	// 	return
+	// }
+	// fmt.Fprintf(w, "current user: %s\n", user.Email)
+}
+
+func (umw UserMiddleware) SetUser(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		token, err := readCookie(r, CookieSession)
+		if err != nil {
+			// cannot lookup a user without cookie so proceed without
+			// a user being set, then return.
+			next.ServeHTTP(w, r)
+			return
+		}
+		user, err := umw.SessionService.User(token)
+		if err != nil {
+			// invalid or expired token, in any case we can proceed
+			// we just cannot set a user
+			next.ServeHTTP(w, r)
+			return
+		}
+		ctx := r.Context()
+		ctx = context.WithUser(ctx, user)
+		r = r.WithContext(ctx)
+		next.ServeHTTP(w, r)
+	})
+}
+
+func (umw UserMiddleware) RequireUser(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user := context.User(r.Context())
+		if user == nil {
+			http.Redirect(w, r, "/signin", http.StatusFound)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 func (u Users) ProcessSignOut(w http.ResponseWriter, r *http.Request) {

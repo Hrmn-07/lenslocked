@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"lenslocked/context"
 	"lenslocked/models"
 
 	_ "github.com/jackc/pgx/v4/stdlib"
@@ -21,28 +22,39 @@ func (cfg PostgresConfig) String() string {
 }
 
 func main() {
-	cfg := models.DefaultPostgresConfig()
-	db, err := models.Open(cfg)
-	if err != nil {
-		panic(err)
-	}
-	defer db.Close()
 
-	err = db.Ping()
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println("connected!")
+	ctx := context.Background()
 
-	us := models.UserService{
-		DB: db,
+	user := models.User{
+		Email: "jon@gmail.com",
 	}
 
-	user, err := us.Create("bob@bob,com", "bob123")
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(user)
+	ctx = context.WithUser(ctx, &user)
+
+	retrievedUser := context.User(ctx)
+	fmt.Println(retrievedUser.Email)
+	// cfg := models.DefaultPostgresConfig()
+	// db, err := models.Open(cfg)
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// defer db.Close()
+
+	// err = db.Ping()
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// fmt.Println("connected!")
+
+	// us := models.UserService{
+	// 	DB: db,
+	// }
+
+	// user, err := us.Create("bob@bob,com", "bob123")
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// fmt.Println(user)
 
 	// (for creating new table)
 	// _, err = db.Exec(`CREATE TABLE IF NOT EXISTS users (
