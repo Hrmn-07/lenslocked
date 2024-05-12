@@ -2,3 +2,4 @@
 # code commits
 lenslocked
 .DS_Store
+.env

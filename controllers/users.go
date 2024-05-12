@@ -5,15 +5,20 @@ import (
 	"lenslocked/context"
 	"lenslocked/models"
 	"net/http"
+	"net/url"
 )
 
 type Users struct {
 	Templates struct {
-		New    Template
-		SignIn Template
+		New            Template
+		SignIn         Template
+		ForgotPassword Template
+		CheckYourEmail Template
 	}
-	UserService    *models.UserService
-	SessionService *models.SessionService
+	UserService          *models.UserService
+	SessionService       *models.SessionService
+	PasswordResetService *models.PasswordResetService
+	EmailService         *models.EmailService
 }
 
 type UserMiddleware struct {
@@ -146,4 +151,38 @@ func (u Users) ProcessSignOut(w http.ResponseWriter, r *http.Request) {
 	}
 	deleteCookie(w, CookieSession)
 	http.Redirect(w, r, "/signin", http.StatusFound)
+}
+
+func (u Users) ForgotPassword(w http.ResponseWriter, r *http.Request) {
+	var data struct {
+		Email string
+	}
+	data.Email = r.FormValue("email")
+	u.Templates.ForgotPassword.Execute(w, r, data)
+}
+
+func (u Users) ProcessForgotPassword(w http.ResponseWriter, r *http.Request) {
+	var data struct {
+		Email string
+	}
+	data.Email = r.FormValue("email")
+	pwReset, err := u.PasswordResetService.Create(data.Email)
+	if err != nil {
+		// TODO: handle other cases in the future, like user dont exist
+		fmt.Println(err)
+		http.Error(w, "something went wrong", http.StatusInternalServerError)
+		return
+	}
+	vals := url.Values{
+		"token": {pwReset.Token},
+	}
+	// TODO: make the url configurable
+	resetURL := "https//www.lenslocked.com/reset-pw?" + vals.Encode()
+	err = u.EmailService.ForgotPassword(data.Email, resetURL)
+	if err != nil {
+		fmt.Println(err)
+		http.Error(w, "something went wrong", http.StatusInternalServerError)
+		return
+	}
+	u.Templates.CheckYourEmail.Execute(w, r, data)
 }
