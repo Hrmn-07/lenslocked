@@ -53,6 +53,7 @@ func loadEnvConfig() (config, error) {
 
 	// TODO: read the server values from an ENV variable
 	cfg.Server.Address = ":3000"
+
 	return cfg, nil
 }
 
@@ -61,6 +62,9 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	// TODO: FIX THIS!!!
+	cfg.CSRF.Key = "gFvi45R4fy5xNBlnEeZtQbfAVCYEIAUX"
+	cfg.Server.Address = ":3000"
 	// setup a database connection
 	db, err := models.Open(cfg.PSQL)
 	if err != nil {
@@ -108,12 +112,17 @@ func main() {
 		views.ParseFS(templates.FS, "signin.gohtml", "tailwind.gohtml")))
 	usersC.Templates.ForgotPassword = (views.Must(
 		views.ParseFS(templates.FS, "forgot-pw.gohtml", "tailwind.gohtml")))
+	usersC.Templates.CheckYourEmail = (views.Must(
+		views.ParseFS(templates.FS, "check-your-email.gohtml", "tailwind.gohtml")))
+	usersC.Templates.ResetPassword = (views.Must(views.ParseFS(
+		templates.FS, "reset-pw.gohtml", "tailwind.gohtml")))
 
 	// setup router
 	r := chi.NewRouter()
 	// these middlewares are used everywhere
 	r.Use(csrfMw)
 	r.Use(umw.SetUser)
+
 	// now we setup routes
 	r.Get("/", controllers.StaticHandler(views.Must(
 		views.ParseFS(templates.FS, "home.gohtml", "tailwind.gohtml"))))
@@ -129,6 +138,8 @@ func main() {
 		r.Get("/", usersC.CurrentUser)
 	})
 	r.Get("/forgot-pw", usersC.ForgotPassword)
+	r.Get("/reset-pw", usersC.ResetPassword)
+	r.Post("/reset-pw", usersC.ProcessResetPassword)
 	r.Post("/signup", usersC.Create)
 	r.Post("/signin", usersC.ProcessSignIn)
 	r.Post("/signout", usersC.ProcessSignOut)
