@@ -86,6 +86,9 @@ func main() {
 	pwResetService := &models.PasswordResetService{
 		DB: db,
 	}
+	galleryService := &models.GalleryService{
+		DB: db,
+	}
 	emailService := models.NewEmailService(cfg.SMTP)
 
 	// setup middlewares
@@ -97,6 +100,7 @@ func main() {
 		[]byte(cfg.CSRF.Key),
 		// TODO: fix before deploying (csrf needs https)
 		csrf.Secure(cfg.CSRF.Secure),
+		csrf.Path("/"),
 	)
 
 	// setup controllers
@@ -105,6 +109,9 @@ func main() {
 		SessionService:       sessionService,
 		PasswordResetService: pwResetService,
 		EmailService:         emailService,
+	}
+	galleriesC := controllers.Galleries{
+		GalleryService: galleryService,
 	}
 	usersC.Templates.New = (views.Must(
 		views.ParseFS(templates.FS, "signup.gohtml", "tailwind.gohtml")))
@@ -116,6 +123,14 @@ func main() {
 		views.ParseFS(templates.FS, "check-your-email.gohtml", "tailwind.gohtml")))
 	usersC.Templates.ResetPassword = (views.Must(views.ParseFS(
 		templates.FS, "reset-pw.gohtml", "tailwind.gohtml")))
+	galleriesC.Templates.New = (views.Must(views.ParseFS(
+		templates.FS, "galleries/new.gohtml", "tailwind.gohtml")))
+	galleriesC.Templates.New = (views.Must(views.ParseFS(
+		templates.FS, "galleries/edit.gohtml", "tailwind.gohtml")))
+	galleriesC.Templates.Index = (views.Must(views.ParseFS(
+		templates.FS, "galleries/index.gohtml", "tailwind.gohtml")))
+	galleriesC.Templates.Show = (views.Must(views.ParseFS(
+		templates.FS, "galleries/show.gohtml", "tailwind.gohtml")))
 
 	// setup router
 	r := chi.NewRouter()
@@ -139,6 +154,18 @@ func main() {
 	})
 	r.Get("/forgot-pw", usersC.ForgotPassword)
 	r.Get("/reset-pw", usersC.ResetPassword)
+	r.Route("/galleries", func(r chi.Router) {
+		r.Get("/{id}", galleriesC.Show)
+		r.Group(func(r chi.Router) {
+			r.Use(umw.RequireUser)
+			r.Get("/", galleriesC.Index)
+			r.Get("/new", galleriesC.New)
+			r.Post("/", galleriesC.Create)
+			r.Get("/{id}/edit", galleriesC.Edit)
+			r.Post("/{id}", galleriesC.Update)
+			r.Post("/{id}/delete", galleriesC.Delete)
+		})
+	})
 	r.Post("/reset-pw", usersC.ProcessResetPassword)
 	r.Post("/signup", usersC.Create)
 	r.Post("/signin", usersC.ProcessSignIn)
